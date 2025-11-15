@@ -1,0 +1,63 @@
+{
+  "business_name": "The Hawker",
+  "industry": "restaurant",
+  "brand_voice": "casual",
+  "from_website": {
+    "business_name": "The Hawker",
+    "description": "Authentic Singaporean hawker food in the heart of the city",
+    "key_offerings": [
+      "Signature laksa",
+      "Char kway teow",
+      "Hainanese chicken rice",
+      "Fresh satay"
+    ],
+    "brand_voice": "casual and friendly",
+    "target_audience": "young professionals, tourists, food enthusiasts",
+    "unique_value": "Traditional recipes passed down three generations, fresh ingredients daily"
+  },
+  "from_maps": {
+    "name": "The Hawker",
+    "rating": 4.5,
+    "total_reviews": 47,
+    "review_themes": [
+      "authentic taste",
+      "generous portions",
+      "quick service",
+      "great value",
+      "friendly staff"
+    ],
+    "business_types": [
+      "restaurant",
+      "food",
+      "point_of_interest",
+      "establishment"
+    ],
+    "location": {
+      "lat": 1.3048,
+      "lng": 103.8318
+    },
+    "address": "123 Orchard Road, Singapore 238858"
+  },
+  "local_trends": {
+    "trending_topics": [
+      "hawker food revival",
+      "local food tours",
+      "singapore foodie",
+      "authentic hawker centers",
+      "best laksa singapore"
+    ],
+    "keywords_used": [
+      "food",
+      "dining",
+      "cuisine",
+      "restaurant"
+    ]
+  },
+  "content_themes": [
+    "heritage recipe storytelling",
+    "behind-the-scenes cooking prep",
+    "customer testimonials and reactions",
+    "signature dish highlights",
+    "daily fresh ingredient showcase"
+  ]
+}

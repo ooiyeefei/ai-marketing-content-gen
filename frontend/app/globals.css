@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900;
+  }
+
+  input, select, textarea {
+    @apply text-gray-900 font-normal;
+  }
+
+  label {
+    @apply text-gray-700 font-medium;
+  }
+
+  option {
+    @apply text-gray-900 bg-white;
+  }
+}

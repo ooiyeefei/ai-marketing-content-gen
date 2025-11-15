@@ -1,0 +1,39 @@
+{
+  "note": "This shows the expected output when Gemini API is properly configured",
+  "calendar": [
+    {
+      "day": 1,
+      "platform": "instagram",
+      "concept": "Heritage laksa preparation showcase",
+      "video_prompts": [
+        "Close-up shot of hands preparing fresh laksa broth with spices, steam rising, warm kitchen lighting, authentic hawker stall setting",
+        "Wide shot of chef adding fresh noodles and garnishes to the steaming bowl, dynamic action, bright overhead lighting",
+        "Close-up of the finished laksa bowl with vibrant colors, garnish detail, table presentation with chopsticks"
+      ],
+      "caption_theme": "heritage recipe story",
+      "cta": "Try our authentic laksa today"
+    },
+    {
+      "day": 2,
+      "platform": "instagram",
+      "concept": "Behind-the-scenes morning prep",
+      "video_prompts": [
+        "Time-lapse of hawker stall setup in early morning, tables arranged, lights turning on, golden hour lighting",
+        "Chef preparing ingredients: slicing vegetables, marinating meat, organized workspace with fresh produce"
+      ],
+      "caption_theme": "dedication and freshness",
+      "cta": "Visit us for the freshest ingredients"
+    },
+    {
+      "day": 3,
+      "platform": "instagram",
+      "concept": "Customer testimonial moment",
+      "video_prompts": [
+        "Happy customer taking first bite, expression of delight, cozy restaurant ambiance with soft lighting",
+        "Customer giving thumbs up and smiling at camera, authentic reaction, warm natural lighting"
+      ],
+      "caption_theme": "customer love",
+      "cta": "Share your experience with us"
+    }
+  ]
+}

@@ -310,15 +310,11 @@ Return ONLY the caption text with hashtags."""
 
             logger.info(f"Generating video with Veo 2.0: {full_prompt[:100]}...")
 
-            # Determine output GCS path
-            output_gcs_uri = f"gs://{settings.storage_bucket}/videos/{job_id}/day{day}/"
-
-            # Build generate_videos config (following official docs)
+            # Build generate_videos config (Google AI Studio API - no output_gcs_uri support)
             config = genai_types.GenerateVideosConfig(
                 number_of_videos=1,
                 duration_seconds=settings.video_duration_seconds,
                 aspect_ratio="9:16",  # Vertical video for Instagram/TikTok
-                output_gcs_uri=output_gcs_uri,
                 enhance_prompt=True
             )
 
@@ -365,35 +361,44 @@ Return ONLY the caption text with hashtags."""
                 logger.error(f"Video generation timed out after {max_polls * poll_interval} seconds")
                 return None
 
-            # Extract video from operation result (following official docs)
-            if hasattr(operation, 'result') and operation.result:
-                result = operation.result
+            # Extract video from operation result
+            if hasattr(operation, 'response') and operation.response:
+                result = operation.response
                 if hasattr(result, 'generated_videos') and result.generated_videos:
                     videos = result.generated_videos
                     if videos and len(videos) > 0:
                         first_video = videos[0]
                         video_object = first_video.video
 
-                        if not video_object or not video_object.uri:
-                            logger.error("Generated video is missing URI")
+                        if not video_object:
+                            logger.error("Generated video object is missing")
                             return None
 
-                        video_gcs_uri = video_object.uri  # This is the gs:// URI
-                        logger.info(f"Video generated successfully: {video_gcs_uri}")
+                        # Download video bytes using client.files.download()
+                        logger.info("Downloading generated video...")
+                        video_bytes = self.genai_client.files.download(file=video_object)
+                        logger.info(f"Downloaded video: {len(video_bytes)} bytes")
 
-                        # Convert GCS URI to public HTTP URL
-                        # gs://bucket/path -> https://storage.googleapis.com/bucket/path
-                        if video_gcs_uri.startswith('gs://'):
-                            gcs_path = video_gcs_uri[5:]  # Remove 'gs://'
-                            public_url = f"https://storage.googleapis.com/{gcs_path}"
-                            logger.info(f"Public URL: {public_url}")
+                        # Upload to GCS
+                        logger.info(f"Uploading video to GCS: job_id={job_id}, day={day}, segment={segment_number}")
+                        public_url = self.storage_service.upload_video(
+                            video_bytes=video_bytes,
+                            mime_type='video/mp4',
+                            job_id=job_id,
+                            day=day,
+                            segment_number=segment_number
+                        )
 
+                        if public_url:
+                            logger.info(f"Video uploaded successfully: {public_url}")
+                            # Note: For video-to-video extension, we'd need the video in GCS
+                            # For now, we'll return both the public URL and a placeholder for GCS URI
                             return {
                                 'uri': public_url,  # Public HTTP URL for frontend
-                                'gcs_uri': video_gcs_uri  # GCS URI for video extension
+                                'gcs_uri': None  # Not needed for Google AI Studio API
                             }
                         else:
-                            logger.error(f"Unexpected URI format: {video_gcs_uri}")
+                            logger.error("Failed to upload video to GCS")
                             return None
                     else:
                         logger.error("No videos in result")
@@ -559,7 +564,9 @@ Make sure the generated image looks authentic and consistent with the brand's ex
                     contents=contents,
                     config=genai_types.GenerateContentConfig(
                         response_modalities=["IMAGE"],
-                        mediaResolution="MEDIA_RESOLUTION_MEDIUM"
+                        image_config=genai_types.ImageConfig(
+                            aspect_ratio="1:1"
+                        )
                     )
                 )
             else:
@@ -571,7 +578,9 @@ Make sure the generated image looks authentic and consistent with the brand's ex
                     contents=full_prompt,
                     config=genai_types.GenerateContentConfig(
                         response_modalities=["IMAGE"],
-                        mediaResolution="MEDIA_RESOLUTION_MEDIUM"
+                        image_config=genai_types.ImageConfig(
+                            aspect_ratio="1:1"
+                        )
                     )
                 )
 

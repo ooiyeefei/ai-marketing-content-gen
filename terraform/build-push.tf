@@ -1,22 +1,27 @@
 # Build and push frontend Docker image
 resource "null_resource" "build_frontend_image" {
-  depends_on = [google_artifact_registry_repository.docker_repo]
+  depends_on = [
+    google_artifact_registry_repository.docker_repo,
+    google_cloud_run_v2_service.backend  # Wait for backend to get its URL
+  ]
 
   triggers = {
-    # Rebuild if source code changes
+    # Rebuild if source code or backend URL changes
     source_hash = sha256(join("", [
       filesha256("${path.module}/../frontend/Dockerfile"),
       filesha256("${path.module}/../frontend/package.json"),
     ]))
+    backend_url = google_cloud_run_v2_service.backend.uri
   }
 
   provisioner "local-exec" {
     command = <<-EOT
       cd ${path.module}/../frontend
 
-      # Build Docker image
+      # Build Docker image with backend URL
       docker build \
         --platform linux/amd64 \
+        --build-arg NEXT_PUBLIC_BACKEND_URL=${google_cloud_run_v2_service.backend.uri} \
         -t ${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/frontend:latest \
         .
 

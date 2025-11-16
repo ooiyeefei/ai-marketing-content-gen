@@ -36,7 +36,7 @@ class GoogleServicesClient:
             self.trends = None
             logger.warning(f"Failed to initialize Trends client: {e}")
 
-        # Initialize Gemini client
+        # Initialize Gemini client (Vertex AI mode)
         try:
             self.genai_client = genai.Client(
                 vertexai=True,

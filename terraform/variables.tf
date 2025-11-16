@@ -12,7 +12,7 @@ variable "region" {
 variable "app_name" {
   description = "Application name"
   type        = string
-  default     = "social-media-ai-agency"
+  default     = "veo-licious-gems"
 }
 
 variable "google_maps_api_key" {

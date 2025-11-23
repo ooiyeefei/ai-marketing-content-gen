@@ -1,4 +1,5 @@
 import os
+import asyncio
 import boto3
 from botocore.client import Config
 from io import BytesIO
@@ -34,7 +35,7 @@ class R2Service:
         )
 
         self.public_url_base = f"https://pub-{account_id}.r2.dev"
-        logger.info(f" Connected to R2 bucket: {self.bucket}")
+        logger.info(f"Connected to R2 bucket: {self.bucket}")
 
     async def upload_bytes(
         self,
@@ -54,19 +55,23 @@ class R2Service:
             Public R2 URL
         """
         try:
-            self.s3_client.upload_fileobj(
-                BytesIO(data),
-                self.bucket,
-                object_key,
-                ExtraArgs={"ContentType": content_type}
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: self.s3_client.upload_fileobj(
+                    BytesIO(data),
+                    self.bucket,
+                    object_key,
+                    ExtraArgs={"ContentType": content_type}
+                )
             )
 
             public_url = f"{self.public_url_base}/{object_key}"
-            logger.info(f" Uploaded to R2: {object_key}")
+            logger.info(f"Uploaded to R2: {object_key}")
             return public_url
 
         except Exception as e:
-            logger.error(f" R2 upload failed: {e}")
+            logger.error(f"R2 upload failed: {e}")
             raise
 
     async def upload_from_url(
@@ -100,7 +105,7 @@ class R2Service:
                 )
 
         except Exception as e:
-            logger.error(f" Failed to upload from URL: {e}")
+            logger.error(f"Failed to upload from URL: {e}")
             raise
 
     def get_campaign_path(self, campaign_id: str, filename: str) -> str:

@@ -10,11 +10,13 @@ aiohttp==3.10.10
 requests==2.32.3
 
 # AI Services
-anthropic==0.39.0
-google-genai==0.3.0
+anthropic==0.39.0  # Claude API
+google-genai==0.3.0  # Vertex AI / Gemini
+# AGI API (https://docs.agi.tech) uses REST API via httpx - no official SDK
+# MiniMax API uses REST API via httpx for image/video generation - no official SDK
 
 # Database & Storage
-convex==0.7.0
+convex==0.7.0  # Using 0.7.0 as 0.7.1 is not available on PyPI
 boto3==1.35.73
 
 # Data Processing

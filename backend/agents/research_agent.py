@@ -1,394 +1,262 @@
-"""
-Agent 1: Research & Discovery Agent
-Autonomously discovers business context, competitors, and market intelligence
-"""
-
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, List, Any, Optional
+from models import (
+    BusinessContext,
+    CompetitorInfo,
+    MarketInsights,
+    ResearchOutput
+)
+from services.agi_service import AGIService
+from services.convex_service import ConvexService
+from services.r2_service import R2Service
 from datetime import datetime
-
-from models import ResearchOutput, BusinessContext, BrandVoice, CompetitorInsight, TrendAnalysis
-from services.lightpanda_service import get_lightpanda_service
-from services.parallel_service import get_parallel_service
-from services.gemini_service import get_gemini_service
-from services.redis_service import get_redis_service
 
 logger = logging.getLogger(__name__)
 
 
 class ResearchAgent:
     """
-    Agent 1: Research & Discovery
+    Agent 1: Intelligence & Research
 
     Responsibilities:
-    1. Research business, competitors, and industry with Parallel.ai (AI-powered search)
-    2. Extract product images with Lightpanda (browser automation)
-    3. Analyze findings with Gemini
-    4. Extract brand voice and context
-    5. Store all findings in Redis with embeddings
+    - Extract business context from website (AGI API)
+    - Discover competitors intelligently (AGI API)
+    - Deep competitor research (AGI API)
+    - Market trend analysis (AGI API)
+    - Store all data in Convex + R2
     """
 
-    def __init__(self):
-        self.parallel = get_parallel_service()  # AI-powered search for research
-        self.lightpanda = get_lightpanda_service()  # Browser automation for images
-        self.gemini = get_gemini_service()
-        self.redis = get_redis_service()
-
-    async def research(
+    def __init__(
         self,
+        agi_service: AGIService,
+        convex_service: ConvexService,
+        r2_service: R2Service
+    ):
+        self.agi = agi_service
+        self.convex = convex_service
+        self.r2 = r2_service
+        logger.info("✓ Research Agent initialized")
+
+    async def run(
+        self,
+        campaign_id: str,
         business_url: str,
         competitor_urls: Optional[List[str]] = None
     ) -> ResearchOutput:
         """
-        Execute complete research workflow
+        Execute complete research workflow.
+
+        Steps:
+        1. Extract business context (AGI API)
+        2. Discover competitors (AGI API or user-provided)
+        3. Research each competitor (AGI API)
+        4. Analyze market trends (AGI API)
+        5. Store all data in Convex + R2
 
         Args:
-            business_url: Business website URL
-            competitor_urls: Optional competitor URLs
+            campaign_id: Unique campaign identifier
+            business_url: Target business website
+            competitor_urls: Optional list of competitor URLs
 
         Returns:
-            Complete research output
+            ResearchOutput with all intelligence data
         """
-        logger.info(f"🔍 Agent 1 starting research for: {business_url}")
+        logger.info(f"🔍 Agent 1 starting research for campaign: {campaign_id}")
 
-        try:
-            # Step 1: Analyze website with Lightpanda
-            business_context = await self._analyze_website(business_url)
+        # Update progress: 0-25%
+        await self.convex.update_progress(
+            campaign_id,
+            status="agent1_running",
+            progress=5,
+            current_agent="Research Agent",
+            message="Extracting business context..."
+        )
 
-            # Step 2: Extract product images with Lightpanda
-            product_images = await self._collect_product_images(business_url)
+        # =====================================================================
+        # Step 0: Extract Business Context
+        # =====================================================================
 
-            # Step 3: Extract brand voice
-            brand_voice = await self._extract_brand_voice(business_context, business_url)
-            business_context.brand_voice = brand_voice
+        logger.info(f"📄 Step 0: Extracting business context from {business_url}")
 
-            # Step 4: Research competitors (optional) with Lightpanda
-            competitor_insights = []
-            if competitor_urls:
-                competitor_insights = await self._research_competitors(competitor_urls)
+        business_data = await self.agi.extract_business_context(business_url)
 
-            # Step 5: Analyze industry trends with Gemini
-            industry_trends = await self._analyze_industry_trends(
-                business_context.industry
-            )
+        business_context = BusinessContext(
+            business_name=business_data.get("business_name", "Unknown"),
+            industry=business_data.get("industry", "Unknown"),
+            description=business_data.get("description", ""),
+            location=business_data.get("location", {}),
+            price_range=business_data.get("price_range"),
+            specialties=business_data.get("specialties", []),
+            brand_voice=business_data.get("brand_voice"),
+            target_audience=business_data.get("target_audience"),
+            website_url=business_url
+        )
 
-            # Step 6: Store in Redis
-            redis_keys = await self._store_research_data(
-                business_url,
-                business_context,
-                product_images,
-                competitor_insights,
-                industry_trends
-            )
+        logger.info(f"✓ Business: {business_context.business_name} ({business_context.industry})")
 
-            result = ResearchOutput(
-                business_context=business_context,
-                product_images=product_images,
-                competitor_insights=competitor_insights,
-                industry_trends=industry_trends,
-                redis_keys=redis_keys,
-                timestamp=datetime.now()
-            )
+        await self.convex.update_progress(
+            campaign_id,
+            status="agent1_running",
+            progress=10,
+            current_agent="Research Agent",
+            message=f"Analyzing {business_context.business_name}..."
+        )
 
-            logger.info(f"✅ Agent 1 research complete: {len(product_images)} images, {len(competitor_insights)} competitors")
-            return result
+        # =====================================================================
+        # Step 1: Intelligent Competitor Discovery
+        # =====================================================================
 
-        except Exception as e:
-            logger.error(f"❌ Agent 1 research failed: {e}", exc_info=True)
-            raise
+        competitors_data = []
 
-    async def _analyze_website(self, business_url: str) -> BusinessContext:
-        """Analyze website and extract business context using Parallel.ai"""
-        logger.info(f"Researching business: {business_url}")
+        if competitor_urls:
+            # User provided competitor URLs
+            logger.info(f"👥 Step 1: Researching {len(competitor_urls)} user-provided competitors")
 
-        try:
-            # Extract business name from URL for better research
-            business_name_guess = business_url.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0].split(".")[0]
-
-            # Use Parallel.ai for AI-powered business research
-            business_research = await self.parallel.research_business(
-                business_name=business_name_guess,
-                business_url=business_url
-            )
-
-            # Use Gemini to synthesize research into structured context
-            research_text = "\n".join([
-                result.get("excerpt", "")
-                for result in business_research.get("research_results", [])
-            ])
-
-            analysis = self.gemini.analyze_website(
-                research_text or "No research data available",
-                business_url
-            )
-
-            business_context = BusinessContext(
-                business_name=analysis.get("business_name") or business_name_guess.title(),
-                business_url=business_url,
-                industry=analysis.get("industry") or "General",
-                products=analysis.get("products") or [],
-                target_audience=analysis.get("target_audience") or "General audience",
-                description=analysis.get("description") or ""
-            )
-
-            logger.info(f"✅ Business context: {business_context.business_name} ({business_context.industry})")
-            return business_context
-
-        except Exception as e:
-            logger.error(f"Business research error: {e}")
-            # Return minimal context
-            business_name_guess = business_url.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0].split(".")[0]
-            return BusinessContext(
-                business_name=business_name_guess.title(),
-                business_url=business_url,
-                industry="General",
-                products=[],
-                target_audience="General audience",
-                description="Unable to research business"
-            )
-
-    async def _collect_product_images(self, business_url: str) -> List[str]:
-        """Extract product images from website"""
-        logger.info("Extracting product images...")
-
-        try:
-            images = await self.lightpanda.extract_product_images(
-                business_url,
-                max_images=10
-            )
-
-            logger.info(f"✅ Found {len(images)} product images")
-            return images
-
-        except Exception as e:
-            logger.error(f"Product image extraction error: {e}")
-            return []
-
-    async def _extract_brand_voice(
-        self,
-        business_context: BusinessContext,
-        business_url: str
-    ) -> BrandVoice:
-        """Extract brand voice characteristics using Parallel.ai"""
-        logger.info("Extracting brand voice...")
-
-        try:
-            # Use Parallel.ai to research brand voice and communication style
-            voice_query = f"What is the brand voice, tone, and communication style of {business_context.business_name}? How do they communicate with their audience?"
-
-            voice_results = await self.parallel.search(
-                objective=voice_query,
-                max_results=5,
-                max_characters=500
-            )
-
-            # Synthesize research into brand voice characteristics
-            voice_research = "\n".join([
-                result.get("excerpt", "")
-                for result in voice_results
-            ])
-
-            # Use Gemini to extract structured brand voice from research
-            voice_analysis = self.gemini.extract_brand_voice(
-                voice_research or f"General information about {business_context.business_name} in {business_context.industry} industry"
-            )
-
-            brand_voice = BrandVoice(
-                tone=voice_analysis.get("tone", "professional"),
-                style=voice_analysis.get("style", "clear"),
-                colors=[],  # Can be extracted from images later
-                personality_traits=voice_analysis.get("personality_traits", []),
-                dos=voice_analysis.get("dos", []),
-                donts=voice_analysis.get("donts", [])
-            )
-
-            logger.info(f"✅ Brand voice: {brand_voice.tone} / {brand_voice.style}")
-            return brand_voice
-
-        except Exception as e:
-            logger.error(f"Brand voice extraction error: {e}")
-            # Return default brand voice
-            return BrandVoice(
-                tone="professional",
-                style="clear",
-                personality_traits=["authentic", "helpful", "knowledgeable"],
-                dos=["Be clear", "Focus on value", "Use active voice"],
-                donts=["Avoid jargon", "Don't oversell", "Don't be vague"]
-            )
-
-    async def _research_competitors(
-        self,
-        competitor_urls: List[str]
-    ) -> List[CompetitorInsight]:
-        """Research competitor websites using Parallel.ai"""
-        logger.info(f"Researching {len(competitor_urls)} competitors...")
-
-        insights = []
-
-        try:
-            # Research each competitor with Parallel.ai
-            for url in competitor_urls[:3]:  # Limit to 3 competitors
-                try:
-                    # Extract competitor name from URL
-                    competitor_name = url.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0].split(".")[0].title()
-
-                    # Search for competitor information
-                    competitor_query = f"What does {competitor_name} do? What are their products, services, and marketing approach?"
-
-                    competitor_results = await self.parallel.search(
-                        objective=competitor_query,
-                        max_results=3,
-                        max_characters=500
-                    )
-
-                    # Extract content themes from research
-                    content_themes = []
-                    if competitor_results:
-                        for result in competitor_results:
-                            excerpt = result.get("excerpt", "")
-                            if "content" in excerpt.lower() or "marketing" in excerpt.lower():
-                                content_themes.append(excerpt[:100])
-
-                    insight = CompetitorInsight(
-                        competitor_name=competitor_name,
-                        competitor_url=url,
-                        content_themes=content_themes[:3],  # Top 3 themes
-                        visual_style="To be analyzed"  # Can be enhanced with image analysis later
-                    )
-
-                    insights.append(insight)
-
-                except Exception as e:
-                    logger.warning(f"Failed to research competitor {url}: {e}")
-
-            logger.info(f"✅ Researched {len(insights)} competitors")
-
-        except Exception as e:
-            logger.error(f"Competitor research error: {e}")
-
-        return insights
-
-    async def _analyze_industry_trends(self, industry: str) -> Optional[TrendAnalysis]:
-        """Analyze industry trends using Parallel.ai"""
-        logger.info(f"Analyzing trends in {industry} industry...")
-
-        try:
-            # Use Parallel.ai to research current industry trends
-            trend_results = await self.parallel.research_industry_trends(industry)
-
-            # Extract trend insights from research
-            trends = []
-            actionable_themes = []
-
-            for trend_data in trend_results[:5]:  # Top 5 trends
-                trend_text = trend_data.get("trend", "")
-                if trend_text:
-                    trends.append(trend_text[:200])  # Limit length
-
-            # Use Gemini to synthesize actionable content themes from trends
-            trends_summary = "\n".join(trends) if trends else f"General {industry} industry trends"
-            content_suggestions = self.gemini.synthesize_insights(
-                {"industry": industry, "trends": trends_summary},
-                "identify 5 actionable content themes that would work well on social media based on these trends"
-            )
-
-            # Extract themes from Gemini's suggestions
-            actionable_themes = [
-                "Behind-the-scenes content",
-                "Educational posts",
-                "User-generated content",
-                "Trend-jacking",
-                "Product showcases"
-            ]  # Default themes; can be enhanced with Gemini parsing
-
-            trend_analysis = TrendAnalysis(
-                industry=industry,
-                trends=trends or [f"Current {industry} industry trends"],
-                actionable_themes=actionable_themes,
-                best_practices=[
-                    "Post consistently (3-5x/week)",
-                    "Use high-quality visuals",
-                    "Engage with comments",
-                    "Use relevant hashtags",
-                    "Tell stories"
-                ]
-            )
-
-            logger.info(f"✅ Industry trends analyzed: {len(trends)} trends found")
-            return trend_analysis
-
-        except Exception as e:
-            logger.error(f"Trend analysis error: {e}")
-            return None
-
-    async def _store_research_data(
-        self,
-        business_url: str,
-        business_context: BusinessContext,
-        product_images: List[str],
-        competitor_insights: List[CompetitorInsight],
-        industry_trends: Optional[TrendAnalysis]
-    ) -> List[str]:
-        """Store research data in Redis with embeddings"""
-        logger.info("Storing research data in Redis...")
-
-        redis_keys = []
-
-        try:
-            # Store business context
-            context_text = f"{business_context.business_name} {business_context.industry} {business_context.description}"
-            context_embedding = self.gemini.get_embedding(context_text)
-
-            self.redis.store_research(
-                business_url=business_url,
-                research_type="website",
-                industry=business_context.industry,
-                embedding=context_embedding,
-                data=business_context.dict()
-            )
-            redis_keys.append(f"research:{business_url}:website")
-
-            # Store product images
-            self.redis.set(
-                f"product_images:{business_url}",
-                product_images,
-                ex=86400  # 24 hours
-            )
-            redis_keys.append(f"product_images:{business_url}")
-
-            # Store competitor insights
-            if competitor_insights:
-                self.redis.set(
-                    f"competitors:{business_url}",
-                    [c.dict() for c in competitor_insights],
-                    ex=86400
+            for idx, comp_url in enumerate(competitor_urls):
+                await self.convex.update_progress(
+                    campaign_id,
+                    status="agent1_running",
+                    progress=10 + (idx * 5),
+                    current_agent="Research Agent",
+                    message=f"Researching competitor {idx + 1}/{len(competitor_urls)}..."
                 )
-                redis_keys.append(f"competitors:{business_url}")
 
-            # Store trends
-            if industry_trends:
-                self.redis.set(
-                    f"trends:{business_context.industry}",
-                    industry_trends.dict(),
-                    ex=86400
+                comp_data = await self.agi.research_competitor(
+                    comp_url,
+                    f"Competitor {idx + 1}"
                 )
-                redis_keys.append(f"trends:{business_context.industry}")
 
-            logger.info(f"✅ Stored {len(redis_keys)} keys in Redis")
+                if comp_data:
+                    competitors_data.append(comp_data)
 
-        except Exception as e:
-            logger.error(f"Redis storage error: {e}")
+        else:
+            # Auto-discover competitors via AGI API
+            logger.info(f"🔍 Step 1: Auto-discovering competitors for {business_context.business_name}")
 
-        return redis_keys
+            await self.convex.update_progress(
+                campaign_id,
+                status="agent1_running",
+                progress=12,
+                current_agent="Research Agent",
+                message="Discovering competitors..."
+            )
 
+            discovered = await self.agi.discover_competitors(
+                business_context.model_dump(),
+                num_competitors=5
+            )
 
-# Global instance
-_research_agent = None
+            logger.info(f"✓ Discovered {len(discovered)} competitors")
 
+            # Step 2: Deep research on each competitor
+            for idx, comp_info in enumerate(discovered):
+                comp_url = comp_info.get("website")
+                comp_name = comp_info.get("name")
 
-def get_research_agent() -> ResearchAgent:
-    """Get or create research agent instance"""
-    global _research_agent
-    if _research_agent is None:
-        _research_agent = ResearchAgent()
-    return _research_agent
+                if not comp_url:
+                    continue
+
+                await self.convex.update_progress(
+                    campaign_id,
+                    status="agent1_running",
+                    progress=12 + (idx * 3),
+                    current_agent="Research Agent",
+                    message=f"Researching {comp_name}..."
+                )
+
+                comp_data = await self.agi.research_competitor(comp_url, comp_name)
+
+                if comp_data:
+                    # Merge discovery data with research data
+                    comp_data.update({
+                        "google_rating": comp_info.get("google_rating"),
+                        "review_count": comp_info.get("review_count"),
+                        "social_handles": comp_info.get("social_handles", {}),
+                        "similarity_score": comp_info.get("similarity_score")
+                    })
+                    competitors_data.append(comp_data)
+
+        # Convert to Pydantic models
+        competitors = [
+            CompetitorInfo(
+                name=comp.get("competitor_name", comp.get("name", "Unknown")),
+                website=comp.get("website"),
+                location=comp.get("location", "Unknown"),
+                google_rating=comp.get("google_rating"),
+                review_count=comp.get("review_count"),
+                social_handles=comp.get("social_handles", {}),
+                pricing_strategy=comp.get("pricing_strategy"),
+                brand_voice=comp.get("brand_voice"),
+                top_content_themes=comp.get("top_content_themes", []),
+                differentiators=comp.get("differentiators", []),
+                similarity_score=comp.get("similarity_score")
+            )
+            for comp in competitors_data
+        ]
+
+        logger.info(f"✓ Researched {len(competitors)} competitors")
+
+        await self.convex.update_progress(
+            campaign_id,
+            status="agent1_running",
+            progress=20,
+            current_agent="Research Agent",
+            message="Analyzing market trends..."
+        )
+
+        # =====================================================================
+        # Step 3: Market Trends Analysis
+        # =====================================================================
+
+        logger.info(f"📈 Step 3: Analyzing market trends")
+
+        trends_data = await self.agi.analyze_market_trends(
+            business_context.model_dump(),
+            [comp.model_dump() for comp in competitors]
+        )
+
+        market_insights = MarketInsights(
+            trending_topics=trends_data.get("trending_topics", []),
+            market_gaps=trends_data.get("market_gaps", []),
+            positioning_opportunities=trends_data.get("positioning_opportunities", []),
+            content_strategy={}  # Will be populated by Agent 2
+        )
+
+        logger.info(f"✓ Market insights: {len(market_insights.trending_topics)} trending topics")
+
+        # =====================================================================
+        # Step 4: Store Research Data
+        # =====================================================================
+
+        await self.convex.update_progress(
+            campaign_id,
+            status="agent1_running",
+            progress=23,
+            current_agent="Research Agent",
+            message="Storing research data..."
+        )
+
+        # Create output model
+        research_output = ResearchOutput(
+            campaign_id=campaign_id,
+            business_context=business_context,
+            competitors=competitors,
+            market_insights=market_insights,
+            research_images=[],  # TODO: Extract and upload competitor images
+            timestamp=datetime.now()
+        )
+
+        # Store in Convex
+        await self.convex.store_research(research_output)
+
+        await self.convex.update_progress(
+            campaign_id,
+            status="agent1_complete",
+            progress=25,
+            current_agent=None,
+            message="Research complete ✓"
+        )
+
+        logger.info(f"✅ Agent 1 complete for campaign: {campaign_id}")
+
+        return research_output

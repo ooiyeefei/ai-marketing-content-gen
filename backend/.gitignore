@@ -1,12 +1,265 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-*.egg-info/
-.pytest_cache/
+# ============================================
+# SENSITIVE FILES - NEVER COMMIT
+# ============================================
+
+# Environment variables (contains API keys, secrets)
 .env
 .env.local
+.env.*.local
+*.env
+
+# AWS credentials
+.aws/
+aws-credentials.json
+
+# API keys and secrets
+**/secrets/
+**/credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ============================================
+# DOCUMENTATION & SETUP FILES
+# ============================================
+
+# Exclude entire docs folder (setup guides, reports, etc.)
+docs/
+/docs/
+
+# Setup scripts with potential sensitive info
+setup-*.sh
+*.sh
+
+# BUT allow startup scripts
+!run.sh
+!start.sh
+
+# Configuration files
+lifecycle.json
+bucket-policy.json
+cors.json
+logging.json
+
+# ============================================
+# PYTHON
+# ============================================
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+backend/venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# ============================================
+# NODE.JS / NEXT.JS
+# ============================================
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+frontend/.next/
+frontend/out/
+
+# Production build
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# ============================================
+# REDIS & DATABASES
+# ============================================
+
+# Redis dumps
+dump.rdb
+*.rdb
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# IDE & EDITORS
+# ============================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# JetBrains (PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# OS FILES
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ============================================
+# LOGS & TEMPORARY FILES
+# ============================================
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ============================================
+# GENERATED FILES
+# ============================================
+
+# Generated images (if storing locally)
+generated-images/
+*.generated.png
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# ============================================
+# CLOUD & DEPLOYMENT
+# ============================================
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Docker
+docker-compose.override.yml
+
+# ============================================
+# PROJECT SPECIFIC
+# ============================================
+
+# MCP server artifacts
+.gemini/
+
+# Test outputs
+test-output/
+screenshots/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar

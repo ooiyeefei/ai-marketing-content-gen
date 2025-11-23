@@ -175,12 +175,11 @@ class CampaignRequest(BaseModel):
 
 class CampaignProgress(BaseModel):
     """Real-time progress tracking"""
-    campaign_id: str
-    status: str  # pending, agent1_running, agent2_running, agent3_running, completed, failed
-    progress: int  # 0-100
-    current_agent: Optional[str] = None
+    current_step: str
+    step_number: int
+    total_steps: int
     message: str
-    error: Optional[str] = None
+    percentage: int = 0  # 0-100
 
 
 class CampaignResponse(BaseModel):
@@ -192,3 +191,48 @@ class CampaignResponse(BaseModel):
     analytics_report: AnalyticsOutput
     campaign_content: CreativeOutput
     sanity_url: Optional[HttpUrl] = None
+
+
+# ============================================================================
+# Additional API Models for FastAPI Endpoints
+# ============================================================================
+
+class GenerateCampaignRequest(BaseModel):
+    """Request model for campaign generation endpoint"""
+    business_url: HttpUrl
+    competitor_urls: Optional[List[HttpUrl]] = None
+    facebook_token: Optional[str] = None
+    instagram_token: Optional[str] = None
+
+
+class GenerateCampaignResponse(BaseModel):
+    """Response model for campaign generation endpoint"""
+    success: bool
+    campaign_id: str
+    message: str
+
+
+class Campaign(BaseModel):
+    """Campaign tracking model with all agent outputs"""
+    campaign_id: str
+    business_url: str
+    status: str  # researching, analyzing, creating, publishing, completed, failed
+    progress: CampaignProgress
+    research: Optional[ResearchOutput] = None
+    strategy: Optional[Any] = None
+    creative: Optional[CreativeOutput] = None
+    orchestration: Optional[Any] = None
+    error_message: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
+    # Autonomous agent specific fields
+    scratchpad: List[Any] = Field(default_factory=list)
+    quality_scores: Dict[str, float] = Field(default_factory=dict)
+    past_learnings: List[str] = Field(default_factory=list)
+    iterations: int = 0
+
+
+class HealthCheckResponse(BaseModel):
+    """Health check response"""
+    status: str
+    services: Dict[str, bool] = Field(default_factory=dict)

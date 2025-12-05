@@ -1,131 +1,106 @@
-# BrandMind AI - Autonomous 4-Agent Marketing Intelligence System
+# BrandMind AI - Autonomous Marketing Content Generation System
 
-**Built for: Production Agents Hackathon (November 21, 2025)**
-
-> From URL to 7-day campaign: AI agents that autonomously research your business, analyze competitors, and generate complete branded social media content.
-
-**Live Demo**: [Coming Soon]
+> From URL to 7-day campaign: AI agents that autonomously research your business, analyze competitors, and generate complete branded social media content with AI-generated images and videos.
 
 ## Overview
 
-BrandMind AI is an autonomous production-grade agent system that transforms a single website URL into a complete 7-day social media campaign with:
-- ✅ Autonomous business discovery and brand analysis
-- ✅ Competitor research and industry trend analysis
-- ✅ Data-driven 7-day content strategy
-- ✅ AI-generated captions and images
-- ✅ CMS publishing to Sanity Studio
-- ✅ Real-time progress tracking
+BrandMind AI is an autonomous production-grade multi-agent system that transforms a single website URL into a complete 7-day social media campaign with:
+- Autonomous business discovery and brand analysis
+- Competitor research and industry trend analysis
+- Data-driven 7-day content strategy
+- AI-generated captions, images, and videos (MiniMax)
+- Real-time database with Convex
+- Cloud storage with Cloudflare R2
 
 **Key Innovation**: Zero user input required beyond URL - agents autonomously discover everything about your business, brand voice, products, and market positioning.
 
 ## Architecture
 
-### 4-Agent Production System
+### 3-Agent Production System
 
-1. **Agent 1: Research & Discovery** (`backend/agents/research_agent.py:18-343`)
-   - Autonomous website scraping with Lightpanda (10x faster than Chrome)
+1. **Agent 1: Research & Discovery** (`backend/agents/research_agent.py`)
+   - Autonomous website scraping and analysis
    - Product image extraction and business context analysis
    - Brand voice extraction from website content
    - Competitor research and analysis
    - Industry trend discovery
 
-2. **Agent 2: Brand Strategy** (`backend/agents/strategy_agent.py:17-202`)
-   - Vector search for similar past campaigns (Redis)
+2. **Agent 2: Content Strategy** (`backend/agents/content_strategist.py`)
    - Data-driven 7-day content strategy generation
    - Competitor insights integration
    - Optimal posting time recommendations
+   - Platform-specific content optimization
 
-3. **Agent 3: Creative Generation** (`backend/agents/creative_agent.py:18-183`)
-   - Caption generation with Claude Sonnet 4.5
-   - Image generation with Google Vertex AI Imagen 3
-   - Style-matched product images as references
-   - S3 asset storage
-
-4. **Agent 4: Orchestration & Publishing** (`backend/agents/orchestration_agent.py:17-195`)
-   - Sanity CMS content publishing
-   - Content calendar generation
-   - Post scheduling (Postman API integration)
-   - Dashboard URL provisioning
+3. **Agent 3: Creative Generation** (`backend/agents/creative_agent.py`)
+   - Caption generation with Gemini
+   - **Image generation with MiniMax** (text-to-image with subject reference)
+   - **Video generation with MiniMax** (image-to-video)
+   - Cloudflare R2 asset storage
 
 ### Tech Stack
 
 **Frontend**:
 - Next.js 14 with TypeScript
-- Material-UI + Tailwind CSS
+- Tailwind CSS
 - Real-time progress tracking
 - Campaign results dashboard
 
 **Backend**:
 - FastAPI with async/await
 - Pydantic v2 for type safety
-- Redis with vector search (1536D embeddings)
-- Claude Sonnet 4.5 for all AI reasoning
+- Convex real-time database
 
-**Sponsor Tools Integrated** (6 of 15):
-1. **Redis** - Vector database for agent memory and campaign similarity search
-2. **Sanity CMS** - Content calendar and publishing platform
-3. **Lightpanda** - 10x faster web scraping (vs Chrome/Puppeteer)
-4. **Anthropic** - Claude Sonnet 4.5 for all AI reasoning and analysis
-5. **AWS** - S3 storage for generated images and videos
-6. **Postman** - API integration for social media scheduling (optional)
+**AI & Media Generation**:
+- **Gemini** - AI reasoning and content generation
+- **MiniMax** - Image generation (text-to-image with subject reference) and video generation (image-to-video)
+- **AGI.tech** - Intelligent web research and competitor analysis
 
-**Additional Services**:
-- Google Vertex AI (Imagen 3, Veo 2)
-- Background task processing with FastAPI
+**Storage & Database**:
+- **Convex** - Real-time database for campaign data
+- **Cloudflare R2** - S3-compatible object storage for generated media
 
 ## Prerequisites
 
-- **Anthropic API key** (Claude Sonnet 4.5) - **REQUIRED**
-- **Redis URL** (with vector search support) - **REQUIRED**
-- **Lightpanda token** (for web scraping) - **REQUIRED**
 - Python 3.11+
 - Node.js 18+
-- GCP project with Vertex AI enabled (for image generation)
-- AWS account (for S3 storage)
-- Sanity project (for CMS publishing)
+- API keys for: Gemini, MiniMax, AGI.tech, Convex, Cloudflare R2
 
 ## Quick Start
 
 ### 1. Clone and Setup
 
 ```bash
-git clone <your-repo-url>
-cd aws-prod-agent-hack
+git clone https://github.com/ooiyeefei/ai-marketing-content-gen.git
+cd ai-marketing-content-gen
 ```
 
 ### 2. Configure Environment Variables
 
 ```bash
-cp .env.example .env
-# Edit .env with your API keys
+cp backend/.env.example backend/.env
+# Edit backend/.env with your API keys
 ```
 
 **Required Environment Variables**:
 
 ```bash
-# Core AI Services
-ANTHROPIC_API_KEY=sk-ant-api03-...  # Claude Sonnet 4.5
-REDIS_URL=redis://default:password@host:6379/0  # Redis with vector search
+# AI Services
+GEMINI_API_KEY=your-gemini-api-key
+AGI_API_KEY=your-agi-api-key
 
-# Web Scraping
-LIGHTPANDA_TOKEN=your-lightpanda-token  # Get from https://lightpanda.io
+# MiniMax (Image & Video Generation)
+MINIMAX_API_KEY=your-minimax-jwt-token
+MINIMAX_GROUP_ID=your-minimax-group-id
 
-# Image Generation (Google Vertex AI)
-GCP_PROJECT_ID=your-gcp-project-id
-GCP_LOCATION=us-central1
-GOOGLE_AI_API_KEY=your-google-ai-key  # Backup for Google AI Studio
+# Database (Convex)
+CONVEX_URL=https://your-project.convex.cloud
+CONVEX_API_KEY=your-convex-api-key
 
-# Asset Storage (AWS S3)
-AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=your-secret
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=brandmind-assets
-
-# CMS Publishing (Sanity)
-SANITY_PROJECT_ID=your-project-id
-SANITY_DATASET=production
-SANITY_TOKEN=your-token
-SANITY_API_VERSION=2025-01-01
+# Storage (Cloudflare R2)
+CLOUDFLARE_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key
+R2_SECRET_ACCESS_KEY=your-r2-secret-key
+R2_BUCKET_NAME=your-bucket-name
 ```
 
 ### 3. Install Backend Dependencies
@@ -164,32 +139,30 @@ npm run dev
 ### 7. Test the System
 
 1. Open http://localhost:3000
-2. Enter a business website URL (e.g., https://www.nike.com)
+2. Enter a business website URL (e.g., https://www.example-business.com)
 3. Optionally add competitor URLs
 4. Click "Generate 7-Day Campaign"
 5. Watch agents work in real-time
-6. View your 7-day campaign with captions and images!
+6. View your 7-day campaign with captions, images, and videos!
 
 ## How It Works
 
-### 4-Agent Autonomous Pipeline
+### 3-Agent Autonomous Pipeline
 
 **Input**: Business Website URL (+ optional competitor URLs)
 
-**Agent 1: Research (0-25%)**
-- Scrapes website with Lightpanda (10x faster than Puppeteer)
-- Extracts:
+**Agent 1: Research (0-33%)**
+- Scrapes website and extracts:
   - Business name, industry, products
   - Brand voice from website copy
-  - Product images (max 20, filtered for quality)
+  - Product images (filtered for quality)
   - Target audience
 - Researches competitor websites (if provided)
 - Analyzes industry trends
-- Stores all findings in Redis with vector embeddings
+- Stores all findings in Convex database
 
-**Agent 2: Strategy (25-50%)**
-- Retrieves similar past campaigns via Redis vector search
-- Analyzes what content performed well
+**Agent 2: Strategy (33-66%)**
+- Analyzes research findings
 - Incorporates competitor insights and trends
 - Generates 7-day content calendar with:
   - Daily themes (e.g., "Behind the scenes", "Product showcase")
@@ -198,62 +171,68 @@ npm run dev
   - Optimal posting times
   - CTAs and hashtag recommendations
 
-**Agent 3: Creative (50-85%)**
-- Generates captions with Claude Sonnet 4.5:
+**Agent 3: Creative (66-100%)**
+- Generates captions with Gemini:
   - Hook, body, CTA structure
   - Brand voice consistency
   - Hashtag integration
-- Generates images with Vertex AI Imagen 3:
-  - Uses product images as style references
-  - 2 options per day (best selected)
+- **Generates images with MiniMax**:
+  - Text-to-image with subject reference URLs
+  - Product images as style references
   - 1:1 aspect ratio for Instagram
-- Uploads all assets to AWS S3
-- Stores content in Redis
-
-**Agent 4: Orchestration (85-100%)**
-- Publishes campaign to Sanity CMS
-- Creates content calendar in Sanity
-- Schedules posts (via Postman API - optional)
-- Returns Sanity Studio URL for review/editing
+- **Generates videos with MiniMax**:
+  - Image-to-video generation
+  - 5-second video clips from generated images
+- Uploads all assets to Cloudflare R2
+- Stores content in Convex database
 
 **Output**:
 - 7 days of complete social media content
-- Captions, images, hashtags, CTAs
-- Published to Sanity CMS
-- Downloadable assets on S3
+- Captions, AI-generated images, AI-generated videos
+- Hashtags and CTAs
+- Downloadable assets from R2
 
-### Key Technical Features
+## MiniMax Integration
 
-**Vector Memory**: Agents learn from past campaigns using Redis vector search with 1536D embeddings. Similar campaigns inform strategy decisions.
+BrandMind AI uses MiniMax for both image and video generation:
 
-**Autonomous Discovery**: Zero manual input required. Agent 1 autonomously discovers business context, brand voice, products, and competitors just from URL.
+### Image Generation
+```python
+# Text-to-image with optional subject reference
+images = await minimax.generate_images(
+    prompt="Professional product photo of coffee beans...",
+    subject_reference_url="https://r2.example.com/product-image.jpg",
+    num_images=2,
+    aspect_ratio="1:1"
+)
+```
 
-**Production-Grade**:
-- Type safety with Pydantic v2
-- Async/await throughout
-- Graceful fallbacks for all services
-- Real-time progress tracking
-- Error handling and logging
+### Video Generation
+```python
+# Image-to-video generation
+video = await minimax.generate_video(
+    prompt="Smooth camera pan across the coffee shop...",
+    first_frame_image=image_bytes  # Generated image as first frame
+)
+```
 
 ## Project Structure
 
 ```
-aws-prod-agent-hack/
+ai-marketing-content-gen/
 ├── backend/
 │   ├── agents/
 │   │   ├── research_agent.py         # Agent 1: Autonomous research
-│   │   ├── strategy_agent.py         # Agent 2: Content strategy
-│   │   ├── creative_agent.py         # Agent 3: Caption & image generation
-│   │   └── orchestration_agent.py    # Agent 4: CMS publishing
+│   │   ├── content_strategist.py     # Agent 2: Content strategy
+│   │   └── creative_agent.py         # Agent 3: MiniMax image/video generation
 │   ├── services/
-│   │   ├── claude_service.py         # Anthropic Claude API
-│   │   ├── redis_service.py          # Redis vector database
-│   │   ├── lightpanda_service.py     # Fast web scraping
-│   │   ├── vertex_service.py         # Google Vertex AI (Imagen)
-│   │   ├── aws_service.py            # AWS S3 storage
-│   │   └── sanity_service.py         # Sanity CMS
+│   │   ├── gemini_service.py         # Google Gemini API
+│   │   ├── minimax_service.py        # MiniMax image & video generation
+│   │   ├── agi_service.py            # AGI.tech web research
+│   │   ├── convex_service.py         # Convex database
+│   │   └── r2_service.py             # Cloudflare R2 storage
 │   ├── models.py                      # Pydantic data models
-│   ├── orchestrator.py                # 4-agent coordinator
+│   ├── orchestrator.py                # 3-agent coordinator
 │   ├── main.py                        # FastAPI server
 │   ├── requirements.txt
 │   └── .env.example
@@ -267,10 +246,13 @@ aws-prod-agent-hack/
 │   │   └── ContentCard.tsx            # Day content display
 │   ├── lib/
 │   │   └── api.ts                     # Backend API client
-│   ├── types/
-│   │   └── index.ts                   # TypeScript types
-│   ├── package.json
-│   └── .env.local
+│   └── types/
+│       └── index.ts                   # TypeScript types
+├── convex/
+│   ├── schema.ts                      # Database schema
+│   ├── campaigns.ts                   # Campaign mutations/queries
+│   ├── research.ts                    # Research data storage
+│   └── content.ts                     # Content storage
 └── README.md
 ```
 
@@ -281,39 +263,17 @@ aws-prod-agent-hack/
 **POST /api/generate**
 - Input: `{ business_url: string, competitor_urls?: string[] }`
 - Returns: `{ success: boolean, campaign_id: string, message: string }`
-- Triggers: Background task that runs all 4 agents
+- Triggers: Background task that runs all 3 agents
 
-**GET /api/campaign/{campaign_id}**
+**GET /api/campaigns/{campaign_id}**
 - Returns: Full campaign object with progress and results
 - Updates in real-time as agents complete work
 
-## Hackathon Submission
+**GET /api/campaigns/{campaign_id}/progress**
+- Returns: Real-time progress updates for the campaign
 
-**Built for:** Production Agents Hackathon (November 21, 2025)
-
-**Sponsor Tools Integrated** (6 minimum required):
-1. ✅ **Redis** - Vector database for agent memory and RAG
-2. ✅ **Sanity CMS** - Content calendar publishing
-3. ✅ **Lightpanda** - 10x faster web scraping
-4. ✅ **Anthropic** - Claude Sonnet 4.5 for all AI reasoning
-5. ✅ **AWS** - S3 asset storage
-6. ✅ **Postman** - Social media API scheduling
-
-**Judging Criteria**:
-- ✅ **Technical Feasibility**: Fully functional 4-agent system with production-grade architecture
-- ✅ **Innovation**: Autonomous discovery from URL alone, vector memory for learning
-- ✅ **Sponsor Integration**: Deep integration of 6 sponsor tools with real use cases
-- ✅ **Code Quality**: Type safety, async/await, error handling, comprehensive tests
-- ✅ **Market Potential**: $17,750+ prize potential across multiple categories
-
-**Prize Categories**:
-- Best Overall Production Agent ($2,500)
-- Best Use of Redis ($2,500)
-- Best Use of Sanity ($2,500)
-- Best Use of Anthropic ($2,500)
-- Best Use of AWS ($2,500)
-- Best Use of Lightpanda ($2,500)
-- Best Use of Postman ($2,500)
+**GET /api/campaigns**
+- Returns: List of all campaigns
 
 ## Development
 
@@ -348,21 +308,22 @@ docker run -p 3000:3000 brandmind-frontend
 
 ## Troubleshooting
 
-**Lightpanda Connection Issues**:
-- Check token is valid
-- Fallback to aiohttp+BeautifulSoup automatically enabled
+**MiniMax Image/Video Generation Issues**:
+- Verify MINIMAX_API_KEY is a valid JWT token
+- Check MINIMAX_GROUP_ID is correct
+- API has rate limits - wait between requests
 
-**Redis Vector Search Not Working**:
-- Ensure Redis has RediSearch module enabled
-- Check vector index is created on first run
+**AGI.tech Connection Issues**:
+- Check API key is valid
+- Sessions may timeout after 180s for complex scraping
 
-**Image Generation Fails**:
-- Vertex AI requires GCP project with billing enabled
-- Falls back to placeholder images if credentials missing
+**Convex Database Issues**:
+- Ensure CONVEX_URL and CONVEX_API_KEY are correct
+- Check Convex dashboard for schema deployment status
 
-**Sanity Publishing Fails**:
-- Check project ID and token are correct
-- Falls back to mock publishing for testing
+**R2 Storage Issues**:
+- Verify Cloudflare account ID and R2 credentials
+- Check bucket name and permissions
 
 ## Contributing
 
@@ -375,9 +336,3 @@ We welcome contributions! Please:
 ## License
 
 MIT License - see LICENSE file for details
-
-## Contact
-
-- GitHub: [Your GitHub]
-- Email: [Your Email]
-- Demo Video: [Coming Soon]

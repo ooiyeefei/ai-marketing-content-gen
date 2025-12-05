@@ -7,6 +7,7 @@ from models import (
     ResearchOutput
 )
 from services.agi_service import AGIService
+from services.gemini_service import GeminiService
 from services.convex_service import ConvexService
 from services.r2_service import R2Service
 from datetime import datetime
@@ -20,19 +21,19 @@ class ResearchAgent:
 
     Responsibilities:
     - Extract business context from website (AGI API)
-    - Discover competitors intelligently (AGI API)
-    - Deep competitor research (AGI API)
-    - Market trend analysis (AGI API)
+    - Generate demo competitor insights (Gemini for hackathon)
     - Store all data in Convex + R2
     """
 
     def __init__(
         self,
         agi_service: AGIService,
+        gemini_service: GeminiService,
         convex_service: ConvexService,
         r2_service: R2Service
     ):
         self.agi = agi_service
+        self.gemini = gemini_service
         self.convex = convex_service
         self.r2 = r2_service
         logger.info("✓ Research Agent initialized")
@@ -80,6 +81,35 @@ class ResearchAgent:
 
         business_data = await self.agi.extract_business_context(business_url)
 
+        # Upload screenshots to R2 if available
+        screenshot_urls = []
+        screenshots = business_data.get("screenshots", [])
+        if screenshots:
+            logger.info(f"📤 Uploading {len(screenshots)} screenshots to R2...")
+            for idx, screenshot in enumerate(screenshots):
+                try:
+                    screenshot_bytes = screenshot.get("data")
+                    screenshot_page = screenshot.get("page", f"screenshot_{idx}")
+
+                    if screenshot_bytes:
+                        # Upload to R2
+                        object_key = self.r2.get_campaign_path(
+                            campaign_id,
+                            f"research/{screenshot_page}.jpg"
+                        )
+                        r2_url = await self.r2.upload_bytes(
+                            screenshot_bytes,
+                            object_key,
+                            content_type="image/jpeg"
+                        )
+                        screenshot_urls.append(r2_url)
+                        logger.info(f"✓ Uploaded screenshot {idx + 1}/{len(screenshots)} to R2")
+                except Exception as e:
+                    logger.warning(f"⚠ Failed to upload screenshot {idx}: {e}")
+
+        # Store screenshot URLs in business data
+        business_data["screenshot_urls"] = screenshot_urls
+
         business_context = BusinessContext(
             business_name=business_data.get("business_name", "Unknown"),
             industry=business_data.get("industry", "Unknown"),
@@ -94,135 +124,114 @@ class ResearchAgent:
 
         logger.info(f"✓ Business: {business_context.business_name} ({business_context.industry})")
 
+        # =====================================================================
+        # DEMO MODE: Generate Competitor Insights with Gemini
+        # =====================================================================
+        # Reason: AGI sessions timeout during competitor discovery
+        # Using Gemini to generate realistic demo data instead
+        # This provides fast, realistic competitor insights for demo purposes
+        # =====================================================================
+
         await self.convex.update_progress(
             campaign_id,
             status="agent1_running",
-            progress=10,
+            progress=15,
             current_agent="Research Agent",
-            message=f"Analyzing {business_context.business_name}..."
+            message="Generating demo competitor insights with Gemini..."
         )
 
+        logger.info(f"🤖 Generating demo competitor insights with Gemini")
+
+        # Prepare business context for Gemini
+        business_context_dict = {
+            "business_name": business_context.business_name,
+            "industry": business_context.industry,
+            "description": business_context.description,
+            "location": business_context.location,
+            "specialties": business_context.specialties
+        }
+
+        # Generate insights with Gemini
+        demo_data = await self.gemini.generate_demo_competitor_insights(business_context_dict)
+
+        # Parse competitors
+        competitors = []
+        for comp_data in demo_data.get("competitors", []):
+            competitors.append(CompetitorInfo(
+                name=comp_data.get("name", "Competitor"),
+                location=comp_data.get("location", "Unknown"),
+                google_rating=comp_data.get("google_rating"),
+                review_count=comp_data.get("review_count"),
+                pricing_strategy=comp_data.get("pricing_strategy"),
+                brand_voice=comp_data.get("brand_voice"),
+                top_content_themes=comp_data.get("top_content_themes", []),
+                differentiators=comp_data.get("differentiators", [])
+            ))
+
+        # Parse market insights
+        market_data = demo_data.get("market_insights", {})
+        market_insights = MarketInsights(
+            trending_topics=market_data.get("trending_topics", []),
+            market_gaps=market_data.get("market_gaps", []),
+            positioning_opportunities=market_data.get("positioning_opportunities", []),
+            content_strategy=market_data.get("content_strategy", {})
+        )
+
+        logger.info(f"✓ Generated {len(competitors)} demo competitors with Gemini")
+        logger.info(f"✓ Generated market insights: {len(market_insights.trending_topics)} trending topics")
+
         # =====================================================================
-        # Step 1: Intelligent Competitor Discovery
+        # Step 3.5: Extract and Upload Images to R2 (Multi-Source)
         # =====================================================================
 
-        competitors_data = []
+        await self.convex.update_progress(
+            campaign_id,
+            status="agent1_running",
+            progress=22,
+            current_agent="Research Agent",
+            message="Downloading images from website, Google Maps, social media..."
+        )
 
-        if competitor_urls:
-            # User provided competitor URLs
-            logger.info(f"👥 Step 1: Researching {len(competitor_urls)} user-provided competitors")
+        research_images = []
+        import httpx
 
-            for idx, comp_url in enumerate(competitor_urls):
-                await self.convex.update_progress(
-                    campaign_id,
-                    status="agent1_running",
-                    progress=10 + (idx * 5),
-                    current_agent="Research Agent",
-                    message=f"Researching competitor {idx + 1}/{len(competitor_urls)}..."
-                )
+        # Extract images from business data (website, Google Maps, social media)
+        business_images = business_data.get("images", {})
 
-                comp_data = await self.agi.research_competitor(
-                    comp_url,
-                    f"Competitor {idx + 1}"
-                )
+        for source, img_urls in business_images.items():
+            logger.info(f"📸 Processing {len(img_urls)} images from {source}")
 
-                if comp_data:
-                    competitors_data.append(comp_data)
-
-        else:
-            # Auto-discover competitors via AGI API
-            logger.info(f"🔍 Step 1: Auto-discovering competitors for {business_context.business_name}")
-
-            await self.convex.update_progress(
-                campaign_id,
-                status="agent1_running",
-                progress=12,
-                current_agent="Research Agent",
-                message="Discovering competitors..."
-            )
-
-            discovered = await self.agi.discover_competitors(
-                business_context.model_dump(),
-                num_competitors=5
-            )
-
-            logger.info(f"✓ Discovered {len(discovered)} competitors")
-
-            # Step 2: Deep research on each competitor
-            for idx, comp_info in enumerate(discovered):
-                comp_url = comp_info.get("website")
-                comp_name = comp_info.get("name")
-
-                if not comp_url:
+            for img_url in img_urls[:5]:  # Max 5 images per source
+                if not img_url or not isinstance(img_url, str):
                     continue
 
-                await self.convex.update_progress(
-                    campaign_id,
-                    status="agent1_running",
-                    progress=12 + (idx * 3),
-                    current_agent="Research Agent",
-                    message=f"Researching {comp_name}..."
-                )
+                try:
+                    # Download image
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        img_response = await client.get(img_url)
+                        img_response.raise_for_status()
+                        image_bytes = img_response.content
 
-                comp_data = await self.agi.research_competitor(comp_url, comp_name)
+                    # Upload to R2
+                    filename = f"{source}_{campaign_id}_{len(research_images)}.jpg"
+                    r2_url = await self.r2.upload_image(
+                        image_bytes=image_bytes,
+                        filename=filename,
+                        folder="research"
+                    )
 
-                if comp_data:
-                    # Merge discovery data with research data
-                    comp_data.update({
-                        "google_rating": comp_info.get("google_rating"),
-                        "review_count": comp_info.get("review_count"),
-                        "social_handles": comp_info.get("social_handles", {}),
-                        "similarity_score": comp_info.get("similarity_score")
-                    })
-                    competitors_data.append(comp_data)
+                    research_images.append(r2_url)
+                    logger.info(f"✓ Uploaded {source} image: {filename} → {r2_url}")
 
-        # Convert to Pydantic models
-        competitors = [
-            CompetitorInfo(
-                name=comp.get("competitor_name", comp.get("name", "Unknown")),
-                website=comp.get("website"),
-                location=comp.get("location", "Unknown"),
-                google_rating=comp.get("google_rating"),
-                review_count=comp.get("review_count"),
-                social_handles=comp.get("social_handles", {}),
-                pricing_strategy=comp.get("pricing_strategy"),
-                brand_voice=comp.get("brand_voice"),
-                top_content_themes=comp.get("top_content_themes", []),
-                differentiators=comp.get("differentiators", []),
-                similarity_score=comp.get("similarity_score")
-            )
-            for comp in competitors_data
-        ]
+                except Exception as e:
+                    logger.warning(f"⚠ Failed to download/upload {source} image {img_url}: {e}")
+                    continue
 
-        logger.info(f"✓ Researched {len(competitors)} competitors")
+        # HACKATHON SKIP: Competitor images disabled (competitors_data is empty)
+        # Original code extracted hero_images from competitor data
+        # Skipped because competitor analysis is disabled
 
-        await self.convex.update_progress(
-            campaign_id,
-            status="agent1_running",
-            progress=20,
-            current_agent="Research Agent",
-            message="Analyzing market trends..."
-        )
-
-        # =====================================================================
-        # Step 3: Market Trends Analysis
-        # =====================================================================
-
-        logger.info(f"📈 Step 3: Analyzing market trends")
-
-        trends_data = await self.agi.analyze_market_trends(
-            business_context.model_dump(),
-            [comp.model_dump() for comp in competitors]
-        )
-
-        market_insights = MarketInsights(
-            trending_topics=trends_data.get("trending_topics", []),
-            market_gaps=trends_data.get("market_gaps", []),
-            positioning_opportunities=trends_data.get("positioning_opportunities", []),
-            content_strategy={}  # Will be populated by Agent 2
-        )
-
-        logger.info(f"✓ Market insights: {len(market_insights.trending_topics)} trending topics")
+        logger.info(f"✓ Uploaded {len(research_images)} total images to R2 (website + Maps + social)")
 
         # =====================================================================
         # Step 4: Store Research Data
@@ -242,7 +251,7 @@ class ResearchAgent:
             business_context=business_context,
             competitors=competitors,
             market_insights=market_insights,
-            research_images=[],  # TODO: Extract and upload competitor images
+            research_images=research_images,  # Now populated with real R2 URLs
             timestamp=datetime.now()
         )
 

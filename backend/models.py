@@ -66,12 +66,18 @@ class CustomerReview(BaseModel):
     helpful_count: Optional[int] = 0
 
 
+class QuotableReview(BaseModel):
+    """A quotable customer review with attribution"""
+    quote: str
+    attribution: str
+
+
 class CustomerSentiment(BaseModel):
     """Analyzed customer sentiment"""
     positive_themes: List[str]
     negative_themes: List[str]
     popular_items: List[str]
-    quotable_reviews: List[str]
+    quotable_reviews: List[QuotableReview]  # Changed from List[str] to List[QuotableReview]
     content_opportunities: List[str]
 
 
@@ -175,11 +181,13 @@ class CampaignRequest(BaseModel):
 
 class CampaignProgress(BaseModel):
     """Real-time progress tracking"""
-    current_step: str
-    step_number: int
-    total_steps: int
+    campaign_id: str
+    status: str
+    percentage: int  # 0-100
+    current_agent: Optional[str] = None
     message: str
-    percentage: int = 0  # 0-100
+    created_at: Optional[float] = None
+    updated_at: Optional[float] = None
 
 
 class CampaignResponse(BaseModel):

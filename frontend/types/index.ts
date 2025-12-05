@@ -1,41 +1,42 @@
-export interface BusinessInput {
-  website_url?: string
-  business_address?: string
-  business_name?: string
-  industry?: string
-  description?: string
-  brand_voice?: 'casual' | 'professional' | 'playful'
-  days?: number
+export interface CampaignRequest {
+  business_url: string
+  competitor_urls?: string[]
 }
 
-export interface VideoSegment {
-  segment_number: number
-  uri: string
-  duration_seconds: number
-  prompt_used: string
-}
-
-export interface ImageSegment {
-  segment_number: number
-  uri: string
-  prompt_used: string
-}
-
-export interface ContentPost {
+export interface DayContent {
   day: number
-  platform: string
+  theme: string
+  content_type: 'image' | 'video' | 'carousel'
   caption: string
-  video_segments: VideoSegment[]
-  image_segments: ImageSegment[]
-  total_duration_seconds: number
   hashtags: string[]
+  image_url: string | null
+  video_url: string | null
+  cta: string
+  scheduled_time: string
 }
 
-export interface GenerationJob {
-  job_id: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  progress: number
+export interface CampaignProgress {
   current_step: string
-  posts: ContentPost[]
-  error?: string
+  step_number: number
+  total_steps: number
+  message: string
+  percentage: number
+}
+
+export interface Campaign {
+  campaign_id: string
+  business_url: string
+  status: 'researching' | 'strategizing' | 'creating' | 'publishing' | 'completed' | 'failed'
+  progress: CampaignProgress
+  days?: DayContent[]
+  sanity_studio_url?: string
+  error_message?: string
+  created_at?: string
+  completed_at?: string
+}
+
+export interface CampaignResponse {
+  success: boolean
+  campaign_id: string
+  message: string
 }

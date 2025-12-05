@@ -114,9 +114,9 @@ class ConvexService:
                 "research:store",
                 {
                     "campaign_id": data.campaign_id,
-                    "business_context": data.business_context.model_dump(),
-                    "competitors": [c.model_dump() for c in data.competitors],
-                    "market_insights": data.market_insights.model_dump(),
+                    "business_context": data.business_context.model_dump(mode='json'),
+                    "competitors": [c.model_dump(mode='json') for c in data.competitors],
+                    "market_insights": data.market_insights.model_dump(mode='json'),
                     "research_images": [str(url) for url in data.research_images],
                     "timestamp": data.timestamp.isoformat()
                 }
@@ -153,9 +153,9 @@ class ConvexService:
                 "analytics:store",
                 {
                     "campaign_id": data.campaign_id,
-                    "customer_sentiment": data.customer_sentiment.model_dump(),
-                    "past_performance": data.past_performance.model_dump() if data.past_performance else None,
-                    "market_trends": data.market_trends.model_dump(),
+                    "customer_sentiment": data.customer_sentiment.model_dump(mode='json'),
+                    "past_performance": data.past_performance.model_dump(mode='json') if data.past_performance else None,
+                    "market_trends": data.market_trends.model_dump(mode='json'),
                     "customer_photos": [str(url) for url in data.customer_photos],
                     "timestamp": data.timestamp.isoformat()
                 }
@@ -192,8 +192,8 @@ class ConvexService:
                 "content:store",
                 {
                     "campaign_id": data.campaign_id,
-                    "days": [day.model_dump() for day in data.days],
-                    "learning_data": data.learning_data.model_dump(),
+                    "days": [day.model_dump(mode='json') for day in data.days],
+                    "learning_data": data.learning_data.model_dump(mode='json'),
                     "status": data.status,
                     "timestamp": data.timestamp.isoformat()
                 }

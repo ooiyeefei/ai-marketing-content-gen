@@ -136,7 +136,8 @@ class CreativeAgent:
                     campaign_id=campaign_id,
                     day_plan=day_plan,
                     business_context=research.business_context.model_dump(),
-                    customer_favorites=analytics.customer_sentiment.popular_items
+                    customer_favorites=analytics.customer_sentiment.popular_items,
+                    research_images=research.research_images
                 )
 
                 days_content.append(day_content)
@@ -257,7 +258,8 @@ class CreativeAgent:
         campaign_id: str,
         day_plan: Dict[str, Any],
         business_context: Dict[str, Any],
-        customer_favorites: List[str]
+        customer_favorites: List[str],
+        research_images: List[str] = []
     ) -> DayContent:
         """
         Step 2: Generate complete content for one day
@@ -290,9 +292,16 @@ class CreativeAgent:
             logger.info(f"✓ Day {day_num} image prompt: {image_prompt[:50]}...")
 
             # Task 3: Generate 2 images (MiniMax)
+            # Use research images as subject reference for brand consistency
+            subject_ref = None
+            if research_images and len(research_images) > 0:
+                # Use first research image as reference for all days
+                subject_ref = research_images[0]
+                logger.info(f"  Using subject reference: {subject_ref}")
+
             images_bytes = await self.minimax.generate_images(
                 prompt=image_prompt,
-                subject_reference_url=None,  # TODO: Could use customer photos as reference
+                subject_reference_url=subject_ref,
                 num_images=2,
                 aspect_ratio="1:1"
             )

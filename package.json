@@ -1,0 +1,16 @@
+{
+  "name": "brandmind-ai-convex",
+  "version": "1.0.0",
+  "description": "Convex database for BrandMind AI autonomous agents",
+  "private": true,
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.17.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

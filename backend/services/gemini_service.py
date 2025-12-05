@@ -30,6 +30,76 @@ class GeminiService:
     # HIGH Thinking: Strategic Analysis
     # ========================================================================
 
+    async def generate_demo_competitor_insights(
+        self,
+        business_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Generate realistic competitor and market insights for demo purposes.
+        Uses Gemini to create synthetic but realistic data based on business context.
+
+        Returns:
+        {
+            "competitors": [
+                {
+                    "name": "Competitor Name",
+                    "location": "City, State",
+                    "google_rating": 4.5,
+                    "review_count": 1200,
+                    "pricing_strategy": "Premium",
+                    "brand_voice": "Authentic and traditional",
+                    "top_content_themes": ["theme1", "theme2"],
+                    "differentiators": ["diff1", "diff2"]
+                }
+            ],
+            "market_insights": {
+                "trending_topics": ["topic1", "topic2"],
+                "market_gaps": ["gap1", "gap2"],
+                "positioning_opportunities": ["opp1", "opp2"],
+                "content_strategy": {"key": "value"}
+            }
+        }
+        """
+        prompt = f"""Generate realistic competitor analysis and market insights for a demo.
+
+Business Context:
+{json.dumps(business_context, indent=2)}
+
+Generate 3-5 realistic competitors in the same industry and location area. For each competitor:
+- Name (realistic but not real businesses)
+- Location (same general area)
+- Google rating (3.8-4.8 range)
+- Review count (500-2000 range)
+- Pricing strategy
+- Brand voice
+- Top content themes they use
+- Key differentiators
+
+Also generate market insights:
+- 5-7 trending topics in this industry
+- 3-5 market gaps/opportunities
+- 3-5 positioning opportunities for the business
+- Content strategy recommendations
+
+Make it realistic and relevant to the business industry. Output as JSON with keys: competitors, market_insights"""
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+
+            result = json.loads(response.text)
+            logger.info(f"✓ Generated demo competitor insights for {business_context.get('business_name', 'business')}")
+            return result
+
+        except Exception as e:
+            logger.error(f"✗ Gemini demo insights generation failed: {e}")
+            raise
+
     async def analyze_customer_sentiment(
         self,
         reviews: List[Dict[str, Any]],
@@ -43,7 +113,9 @@ class GeminiService:
             "positive_themes": ["fresh ingredients", "authentic taste"],
             "negative_themes": ["slow service on weekends"],
             "popular_items": ["spicy tuna roll", "sake selection"],
-            "quotable_reviews": ["The freshest sushi in SF!"],
+            "quotable_reviews": [
+                {"quote": "The freshest sushi in SF!", "attribution": "John D."}
+            ],
             "content_opportunities": ["Showcase ingredient sourcing"]
         }
         """
@@ -54,7 +126,7 @@ Extract:
 2. Common negative themes (pain points to address)
 3. Specific dishes/products mentioned frequently
 4. Service quality indicators
-5. Quotable customer praise for content
+5. Quotable customer praise for content (with attribution)
 6. Content opportunities based on feedback
 
 Provide actionable insights for content strategy.
@@ -62,15 +134,22 @@ Provide actionable insights for content strategy.
 Reviews:
 {json.dumps(reviews, indent=2)}
 
-Output as JSON with keys: positive_themes, negative_themes, popular_items,
-quotable_reviews, content_opportunities"""
+Output as JSON with these EXACT keys and formats:
+- positive_themes: array of strings
+- negative_themes: array of strings
+- popular_items: array of strings
+- quotable_reviews: array of objects with "quote" and "attribution" fields
+  Example: [{{"quote": "Amazing food!", "attribution": "Sarah M."}}]
+- content_opportunities: array of strings
+
+IMPORTANT: quotable_reviews must be an array of objects, NOT strings."""
 
         try:
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(thinking_level="high"),
+                    # thinking_config removed for compatibility
                     response_mime_type="application/json"
                 )
             )
@@ -128,7 +207,7 @@ Output as JSON with keys: winning_patterns, avoid_patterns, recommendations"""
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(thinking_level="high"),
+                    # thinking_config removed for compatibility
                     response_mime_type="application/json"
                 )
             )
@@ -216,7 +295,7 @@ Output as JSON:
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(thinking_level="high"),
+                    # thinking_config removed for compatibility
                     response_mime_type="application/json"
                 )
             )
@@ -266,7 +345,6 @@ Output only the caption text (no JSON, no explanation)."""
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(thinking_level="low")
                 )
             )
 
@@ -308,7 +386,6 @@ No JSON, just the prompt text."""
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(thinking_level="low")
                 )
             )
 
@@ -348,7 +425,6 @@ No JSON, just the motion prompt."""
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(thinking_level="low")
                 )
             )
 

@@ -3,24 +3,24 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import InputForm from '@/components/InputForm'
-import { generateContent } from '@/lib/api'
-import { BusinessInput } from '@/types'
+import { generateCampaign } from '@/lib/api'
+import { CampaignRequest } from '@/types'
 
 export default function Home() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const handleSubmit = async (businessInput: BusinessInput) => {
+  const handleSubmit = async (request: CampaignRequest) => {
     setLoading(true)
 
     try {
-      const response = await generateContent(businessInput)
+      const response = await generateCampaign(request)
 
-      // Redirect to gallery page with job ID
-      router.push(`/gallery?job_id=${response.job_id}`)
+      // Redirect to gallery page with campaign ID
+      router.push(`/gallery?campaign_id=${response.campaign_id}`)
     } catch (error) {
-      console.error('Error generating content:', error)
-      alert('Failed to generate content. Please try again.')
+      console.error('Error generating campaign:', error)
+      alert('Failed to generate campaign. Please try again.')
     } finally {
       setLoading(false)
     }

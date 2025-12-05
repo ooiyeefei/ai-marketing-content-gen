@@ -141,9 +141,14 @@ Return ONLY valid JSON."""
                     post['video_prompts'] = [post['video_prompts']]
 
                 # Enforce exactly 3 video prompts
-                while len(post['video_prompts']) < settings.max_videos_per_post:
-                    post['video_prompts'].append(post['video_prompts'][0])  # Duplicate first prompt if needed
-                post['video_prompts'] = post['video_prompts'][:settings.max_videos_per_post]
+                if len(post['video_prompts']) == 0:
+                    # If empty, create default prompts
+                    post['video_prompts'] = [f"Professional video of {post.get('concept', 'business content')}"] * settings.max_videos_per_post
+                else:
+                    # Duplicate first prompt to reach desired count
+                    while len(post['video_prompts']) < settings.max_videos_per_post:
+                        post['video_prompts'].append(post['video_prompts'][0])
+                    post['video_prompts'] = post['video_prompts'][:settings.max_videos_per_post]
 
                 # Ensure image_prompts exists and has exactly 3 items
                 if 'image_prompts' not in post or not post['image_prompts']:
@@ -152,9 +157,14 @@ Return ONLY valid JSON."""
                     post['image_prompts'] = [post['image_prompts']]
 
                 # Enforce exactly 3 image prompts
-                while len(post['image_prompts']) < settings.max_images_per_post:
-                    post['image_prompts'].append(post['image_prompts'][0])  # Duplicate first prompt if needed
-                post['image_prompts'] = post['image_prompts'][:settings.max_images_per_post]
+                if len(post['image_prompts']) == 0:
+                    # If empty, create default prompts
+                    post['image_prompts'] = [f"Professional photo of {post.get('concept', 'business content')}"] * settings.max_images_per_post
+                else:
+                    # Duplicate first prompt to reach desired count
+                    while len(post['image_prompts']) < settings.max_images_per_post:
+                        post['image_prompts'].append(post['image_prompts'][0])
+                    post['image_prompts'] = post['image_prompts'][:settings.max_images_per_post]
 
             return calendar[:7]  # Ensure exactly 7 posts
 

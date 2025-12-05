@@ -22,8 +22,9 @@ class MiniMaxService:
         if not self.api_key:
             raise ValueError("MINIMAX_API_KEY environment variable not set")
 
-        self.image_url = "https://api.minimax.chat/v1/text_to_image"
-        self.video_url = "https://api.minimax.chat/v1/video_generation"
+        # MiniMax API endpoints - correct base URL from docs
+        self.image_url = "https://api.minimax.io/v1/image_generation"
+        self.video_url = "https://api.minimax.io/v1/video_generation"
 
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -59,14 +60,18 @@ class MiniMaxService:
             "model": "image-01",
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "num_images": num_images
+            "n": num_images,  # Correct parameter name per API docs
+            "response_format": "base64"  # Request base64 encoded images
         }
 
-        # Add subject reference if provided
+        # Add subject reference if provided (image-to-image)
         if subject_reference_url:
-            payload["subject_reference"] = {
-                "image_url": subject_reference_url
-            }
+            payload["subject_reference"] = [
+                {
+                    "type": "character",
+                    "image_file": subject_reference_url
+                }
+            ]
 
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
@@ -75,22 +80,45 @@ class MiniMaxService:
                     headers=self.headers,
                     json=payload
                 )
+
+                # Check for API errors in response body
+                result = response.json()
+
+                # MiniMax returns errors in base_resp even with 200 status
+                if "base_resp" in result:
+                    status_code = result["base_resp"].get("status_code")
+                    status_msg = result["base_resp"].get("status_msg")
+
+                    if status_code != 0:
+                        error_msg = f"MiniMax API error: status_code {status_code}, {status_msg}"
+                        logger.error(f"✗ {error_msg}")
+                        raise Exception(error_msg)
+
                 response.raise_for_status()
 
-                result = response.json()
-                images_data = result.get("data", [])
+                # Parse response - handle both response formats
+                data = result.get("data", {})
 
-                # Decode base64 images
-                images = []
-                for img_data in images_data:
-                    base64_image = img_data.get("base64_image")
-                    if base64_image:
-                        image_bytes = base64.b64decode(base64_image)
-                        images.append(image_bytes)
+                # Try new format first: data.items[{base64}]
+                items = data.get("items", [])
+                if items:
+                    images = []
+                    for item in items:
+                        base64_data = item.get("base64")
+                        if base64_data:
+                            image_bytes = base64.b64decode(base64_data)
+                            images.append(image_bytes)
+                else:
+                    # Fall back to old format: data.image_base64[]
+                    base64_list = data.get("image_base64", [])
+                    images = [base64.b64decode(b64) for b64 in base64_list if b64]
 
                 logger.info(f"✓ Generated {len(images)} images with MiniMax")
                 return images
 
+        except httpx.HTTPStatusError as e:
+            logger.error(f"✗ MiniMax HTTP error: {e}")
+            raise
         except Exception as e:
             logger.error(f"✗ MiniMax image generation failed: {e}")
             raise

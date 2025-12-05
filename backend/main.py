@@ -22,8 +22,8 @@ from models import (
     CampaignProgress,
     HealthCheckResponse,
 )
-from orchestrator import AgentOrchestrator
-from langgraph_orchestrator import get_autonomous_orchestrator
+from orchestrator import get_orchestrator
+# from langgraph_orchestrator import get_autonomous_orchestrator  # TODO: Fix OrchestrationOutput import
 
 # Configure logging
 logging.basicConfig(
@@ -291,8 +291,11 @@ async def generate_autonomous_campaign_task(
     start_time = datetime.now()
 
     try:
+        # TODO: Re-enable when OrchestrationOutput import is fixed
+        raise HTTPException(status_code=501, detail="Autonomous mode temporarily disabled")
+
         # Initialize autonomous orchestrator
-        autonomous_orchestrator = get_autonomous_orchestrator()
+        # autonomous_orchestrator = get_autonomous_orchestrator()
 
         logger.info(f"🤖 Running AUTONOMOUS campaign generation")
 
@@ -377,25 +380,26 @@ async def generate_campaign_task(
 
     try:
         # Initialize orchestrator
-        orchestrator = AgentOrchestrator()
+        orchestrator = get_orchestrator()
 
-        # Run complete campaign generation pipeline (all 4 agents)
+        # Run complete campaign generation pipeline (all 3 agents)
         logger.info(f"🚀 Running campaign generation for {request.business_url}")
 
-        updated_campaign = await orchestrator.run(
-            campaign=campaign,
+        campaign_response = await orchestrator.run_campaign(
             business_url=str(request.business_url),
             competitor_urls=[str(url) for url in (request.competitor_urls or [])]
         )
 
         # Update campaign with results
-        campaign.research = updated_campaign.research
-        campaign.strategy = updated_campaign.strategy
-        campaign.creative = updated_campaign.creative
-        campaign.orchestration = updated_campaign.orchestration
-        campaign.status = updated_campaign.status
-        campaign.progress = updated_campaign.progress
-        campaign.completed_at = updated_campaign.completed_at
+        campaign.status = "completed"
+        campaign.completed_at = datetime.now()
+        campaign.progress = CampaignProgress(
+            current_step="completed",
+            step_number=4,
+            total_steps=4,
+            message="Campaign generation completed",
+            percentage=100
+        )
 
         # Calculate total time
         total_time = (datetime.now() - start_time).total_seconds()

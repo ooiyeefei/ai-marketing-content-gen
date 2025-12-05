@@ -103,3 +103,35 @@ src/scripts/knowledge_base/*.log
 # clerk configuration (can include secrets)
 /.clerk/
 .env*.local
+
+# ============================================================================
+# SECRETS & CREDENTIALS - NEVER COMMIT
+# ============================================================================
+# Environment files with real secrets
+backend/.env
+frontend/.env
+.env.production
+*.secret
+*.secrets
+*credentials*.json
+*service-account*.json
+
+# API keys that might be in files
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ============================================================================
+# GENERATED/OUTPUT FILES
+# ============================================================================
+# Test outputs
+backend/tests/outputs/
+logs/
+*.log
+
+# Data files (may contain scraped/generated content)
+data/
+
+# Convex generated files (keep schema, ignore generated)
+convex/_generated/
